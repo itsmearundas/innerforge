@@ -1,0 +1,28 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body { @apply bg-ink-950 text-ink-200 font-mono; }
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-track { @apply bg-ink-950; }
+  ::-webkit-scrollbar-thumb { @apply bg-ink-800 rounded; }
+}
+
+@layer components {
+  .btn-primary { @apply px-4 py-2 bg-forge text-ink-950 font-mono text-xs tracking-widest uppercase rounded hover:bg-forge-dark transition-colors; }
+  .btn-ghost { @apply px-4 py-2 border border-ink-800 text-ink-400 font-mono text-xs tracking-widest uppercase rounded hover:border-ink-600 hover:text-ink-200 transition-colors; }
+  .card { @apply bg-ink-900 border border-ink-800 rounded-xl p-5; }
+  .input-field { @apply w-full bg-ink-900 border border-ink-800 rounded-lg px-4 py-3 text-ink-200 font-mono text-sm outline-none focus:border-ink-600 transition-colors placeholder-ink-700; }
+  .mode-mirror { @apply text-mirror border-mirror; }
+  .mode-forge { @apply text-forge border-forge; }
+  .mode-coach { @apply text-coach border-coach; }
+  .mode-arena { @apply text-arena border-arena; }
+}
+
+/* TipTap editor */
+.ProseMirror { outline: none; min-height: 300px; line-height: 1.8; }
+.ProseMirror p.is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  @apply text-ink-700 pointer-events-none float-left h-0;
+}
