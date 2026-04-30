@@ -1,96 +1,84 @@
-import { Outlet, NavLink, useLocation } from 'react-router-dom';
+import { Outlet, NavLink } from 'react-router-dom';
 import { useAuthStore, useOracleStore } from '../store';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import api from '../api/axios';
 
 const NAV = [
-  { to: '/journal', label: 'Mirror', icon: '◯', desc: 'Journal' },
-  { to: '/forge', label: 'Forge', icon: '◈', desc: 'Ideas' },
-  { to: '/arena', label: 'Arena', icon: '◇', desc: 'Debate' },
-  { to: '/evolution', label: 'Evolution', icon: '◉', desc: 'Growth' },
+  { to: '/', label: 'Oracle', icon: '◬', exact: true },
+  { to: '/journal', label: 'Mirror', icon: '◯' },
+  { to: '/forge', label: 'Forge', icon: '◈' },
+  { to: '/arena', label: 'Arena', icon: '◇' },
+  { to: '/evolution', label: 'Evolution', icon: '◉' },
 ];
 
 export default function Layout() {
   const { user, logout } = useAuthStore();
-  const { toggle, insights, addInsight, addBgEvent } = useOracleStore();
+  const { addInsight, addBgEvent } = useOracleStore();
+  const [collapsed, setCollapsed] = useState(false);
 
-  // SSE connection for background insights
   useEffect(() => {
-    const token = localStorage.getItem('token');
-    if (!token) return;
-    const evtSource = new EventSource(`/api/oracle/stream?token=${token}`);
-    evtSource.onmessage = (e) => {
-      try {
-        const insight = JSON.parse(e.data);
-        addInsight(insight);
-        addBgEvent({ time: new Date().toLocaleTimeString(), ...insight });
-      } catch {}
-    };
-    // Load existing insights
-    api.get('/oracle/insights').then(({ data }) => data.forEach(addInsight)).catch(() => {});
-    return () => evtSource.close();
+    const token = localStorage.getItem('token'); if (!token) return;
+    const es = new EventSource(`/api/oracle/stream?token=${token}`);
+    es.onmessage = e => { try { const d = JSON.parse(e.data); addInsight(d); addBgEvent({time:new Date().toLocaleTimeString(),...d}); } catch {} };
+    api.get('/oracle/insights').then(({data})=>data.forEach(addInsight)).catch(()=>{});
+    return () => es.close();
   }, []);
 
   return (
-    <div className="flex h-screen overflow-hidden bg-ink-950">
+    <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', background: '#040C10' }}>
       {/* Sidebar */}
-      <aside className="w-16 md:w-56 flex-shrink-0 border-r border-ink-900 flex flex-col">
+      <aside style={{ width: collapsed ? '60px' : '210px', flexShrink: 0, display: 'flex', flexDirection: 'column', background: '#071A24', borderRight: '1px solid #163040', transition: 'width 0.3s ease', overflow: 'hidden' }}>
         {/* Logo */}
-        <div className="p-4 border-b border-ink-900">
-          <div className="flex items-center gap-3">
-            <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
-              <polygon points="11,2 20,19 2,19" stroke="#e8a84c" strokeWidth="0.8" fill="none" opacity="0.6"/>
-              <circle cx="11" cy="11" r="2.5" fill="#e8a84c" opacity="0.8"/>
-            </svg>
-            <span className="hidden md:block font-serif text-forge text-base tracking-wide">InnerForge</span>
-          </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '16px 14px', borderBottom: '1px solid #163040', flexShrink: 0 }}>
+          <img src="/aetrus-logo.png" alt="Aetrus" style={{ width: '28px', height: '28px', objectFit: 'contain', flexShrink: 0 }} />
+          {!collapsed && (
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <p style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: '16px', color: '#E8F4F6', fontWeight: 400, whiteSpace: 'nowrap' }}>InnerForge</p>
+              <p style={{ fontSize: '8px', color: '#C8834A', letterSpacing: '0.2em', textTransform: 'uppercase', marginTop: '1px' }}>by AETRUS</p>
+            </div>
+          )}
+          <button onClick={() => setCollapsed(c=>!c)} style={{ marginLeft: 'auto', color: '#1E3840', fontSize: '12px', background: 'none', border: 'none', cursor: 'pointer', flexShrink: 0, padding: '4px' }}>
+            {collapsed ? '›' : '‹'}
+          </button>
         </div>
 
         {/* Nav */}
-        <nav className="flex-1 p-2 flex flex-col gap-1">
+        <nav style={{ flex: 1, padding: '12px 8px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
           {NAV.map(n => (
-            <NavLink key={n.to} to={n.to}
-              className={({ isActive }) =>
-                `flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs tracking-wider uppercase transition-all ${
-                  isActive ? 'bg-ink-900 text-ink-100 border border-ink-800' : 'text-ink-600 hover:text-ink-300 hover:bg-ink-900/50'
-                }`
-              }>
-              <span className="text-sm flex-shrink-0">{n.icon}</span>
-              <span className="hidden md:block">{n.label}</span>
+            <NavLink key={n.to} to={n.to} end={n.exact} style={({ isActive }) => ({
+              display: 'flex', alignItems: 'center', gap: '10px',
+              padding: collapsed ? '10px' : '10px 12px',
+              borderRadius: '12px', fontSize: '13px', fontWeight: isActive ? 500 : 400,
+              textDecoration: 'none', transition: 'all 0.2s', whiteSpace: 'nowrap',
+              background: isActive ? '#0D2535' : 'transparent',
+              color: isActive ? '#C8834A' : '#3A6070',
+              border: isActive ? '1px solid #1E506840' : '1px solid transparent',
+              justifyContent: collapsed ? 'center' : 'flex-start',
+            })}>
+              <span style={{ fontSize: '15px', flexShrink: 0 }}>{n.icon}</span>
+              {!collapsed && <span>{n.label}</span>}
             </NavLink>
           ))}
         </nav>
 
-        {/* Oracle button */}
-        <div className="p-3 border-t border-ink-900">
-          <button onClick={toggle}
-            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg bg-forge/10 border border-forge/20 text-forge text-xs tracking-wider uppercase hover:bg-forge/20 transition-all relative">
-            <span className="text-sm">◬</span>
-            <span className="hidden md:block">Oracle</span>
-            {insights.length > 0 && (
-              <span className="absolute top-1 right-1 w-4 h-4 bg-forge text-ink-950 text-[9px] rounded-full flex items-center justify-center font-bold">
-                {insights.length}
-              </span>
-            )}
-          </button>
-        </div>
-
         {/* User */}
-        <div className="p-3 border-t border-ink-900">
-          <div className="flex items-center gap-2">
-            <div className="w-7 h-7 bg-ink-800 rounded-full flex items-center justify-center text-xs text-ink-400 flex-shrink-0">
+        <div style={{ padding: '12px 8px', borderTop: '1px solid #163040' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '8px', borderRadius: '12px', background: '#0D2535' }}>
+            <div style={{ width: '28px', height: '28px', borderRadius: '50%', background: '#1E5068', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px', fontWeight: 600, color: '#E8F4F6', flexShrink: 0 }}>
               {user?.name?.[0]?.toUpperCase()}
             </div>
-            <div className="hidden md:flex flex-col min-w-0">
-              <span className="text-xs text-ink-300 truncate">{user?.name}</span>
-              <button onClick={logout} className="text-[9px] text-ink-600 hover:text-ink-400 text-left tracking-wider uppercase">Logout</button>
-            </div>
+            {!collapsed && (
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <p style={{ fontSize: '12px', color: '#E8F4F6', fontWeight: 500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{user?.name}</p>
+                <button onClick={logout} style={{ fontSize: '10px', color: '#3A6070', background: 'none', border: 'none', cursor: 'pointer', padding: 0, transition: 'color 0.2s' }}
+                  onMouseEnter={e=>e.target.style.color='#FF6666'} onMouseLeave={e=>e.target.style.color='#3A6070'}>Sign out</button>
+              </div>
+            )}
           </div>
         </div>
       </aside>
 
-      {/* Main */}
-      <main className="flex-1 overflow-y-auto">
+      <main style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' }} className="page-enter">
         <Outlet />
       </main>
     </div>

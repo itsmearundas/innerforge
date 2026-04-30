@@ -4,16 +4,47 @@ export default {
   theme: {
     extend: {
       colors: {
-        forge: { DEFAULT: '#e8a84c', dark: '#b07830' },
-        mirror: { DEFAULT: '#7eb8d4', dark: '#5a90b0' },
-        coach: { DEFAULT: '#7ec47e', dark: '#4a944e' },
-        arena: { DEFAULT: '#c47eb8', dark: '#8a4a98' },
-        ink: { 50: '#f0f0f8', 100: '#e0e0f0', 200: '#c0c0e0', 300: '#9090c0', 400: '#6060a0', 500: '#404080', 600: '#303070', 700: '#202060', 800: '#141440', 900: '#0a0a28', 950: '#050514' }
+        // Core brand — deep teal inspired by Aetrus logo
+        brand: {
+          950: '#040C10',
+          900: '#071520',
+          800: '#0D2030',
+          700: '#122A3D',
+          600: '#1A3D52',
+          500: '#1E5068',
+          400: '#2A6B85',
+          300: '#3A8FA8',
+          200: '#5AAFC8',
+          100: '#8ACFE0',
+        },
+        // Copper accent — from AETRUS logo text
+        copper: {
+          DEFAULT: '#C8834A',
+          dark: '#A86835',
+          light: '#E0A070',
+          glow: '#C8834A40',
+        },
+        // Surfaces
+        surface: {
+          base: '#040C10',
+          card: '#071A24',
+          elevated: '#0D2535',
+          border: '#163040',
+          hover: '#112030',
+        },
+        // Text
+        ink: {
+          primary: '#E8F4F6',
+          secondary: '#7AAAB8',
+          muted: '#3A6070',
+          ghost: '#1E3840',
+        }
       },
       fontFamily: {
         serif: ['Cormorant Garamond', 'Georgia', 'serif'],
         mono: ['DM Mono', 'monospace'],
-      }
+        sans: ['Inter', 'system-ui', 'sans-serif'],
+      },
     }
   },
   plugins: []

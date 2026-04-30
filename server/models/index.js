@@ -112,3 +112,25 @@ export const PsychProfile = mongoose.model('PsychProfile', psychProfileSchema);
 export const Idea = mongoose.model('Idea', ideaSchema);
 export const BackgroundInsight = mongoose.model('BackgroundInsight', backgroundInsightSchema);
 export const Debate = mongoose.model('Debate', debateSchema);
+
+// ── ORACLE CONVERSATION ───────────────────────────────────────
+const oracleMessageSchema = new mongoose.Schema({
+  role: { type: String, enum: ['user', 'ai'], required: true },
+  content: { type: String, required: true },
+  mode: { type: String, enum: ['mirror', 'forge', 'coach', 'arena', 'auto'], default: 'auto' },
+  timestamp: { type: Date, default: Date.now }
+});
+
+const oracleConversationSchema = new mongoose.Schema({
+  user: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true, unique: true },
+  messages: [oracleMessageSchema],
+  totalExchanges: { type: Number, default: 0 },
+  lastActive: { type: Date, default: Date.now },
+  relationshipStage: { 
+    type: String, 
+    enum: ['stranger', 'acquaintance', 'familiar', 'intimate'], 
+    default: 'stranger' 
+  },
+}, { timestamps: true });
+
+export const OracleConversation = mongoose.model('OracleConversation', oracleConversationSchema);

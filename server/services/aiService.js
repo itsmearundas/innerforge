@@ -8,7 +8,7 @@ async function ask(messages, systemPrompt = null, max_tokens = 1024) {
     ? [{ role: 'system', content: systemPrompt }, ...messages]
     : messages;
   const res = await client.chat.completions.create({
-    model: 'llama3-70b-8192',
+    model: 'llama-3.3-70b-versatile',
     max_tokens,
     messages: msgs,
   });
@@ -32,17 +32,51 @@ export async function buildPsychProfile(entries, existingProfile) {
 
 export async function stressTestIdea(idea, psychProfile) {
   const profileContext = psychProfile ? `\nUser biases: ${psychProfile.topBiases?.map(b => `${b.name} (strength ${b.strength})`).join(', ')}\nFears: ${psychProfile.recurringFears?.join(', ')}\nDecision pattern: ${psychProfile.decisionPattern}` : '';
-  const text = await ask([{ role: 'user', content: `You are a brutal idea stress-tester. Return ONLY valid JSON:\n{\n  "attacks": [{"angle": "name", "argument": "argument", "severity": 5, "isPersonalized": false}],\n  "steelMan": "strongest version of the idea",\n  "overallScore": 50\n}\n\nAttack from 10 angles (mark isPersonalized=true for first 2-3 using user biases):\n1. User's blind spots (personalized)\n2. User's fears (personalized)\n3. Logic flaws\n4. Financial reality\n5. Ethics\n6. Emotional motivation\n7. Contrarian view\n8. Execution risk\n9. Timing\n10. What they're missing\n${profileContext}\n\nIdea: ${idea.title}\n${idea.content}` }], null, 2000);
+  const text = await ask([{ role: 'user', content: `You are a brutal idea stress-tester. Return ONLY valid JSON:\n{\n  "attacks": [{"angle": "name", "argument": "argument", "severity": 5, "isPersonalized": false}],\n  "steelMan": "strongest version of the idea",\n  "overallScore": 50\n}\n\nAttack from 10 angles (mark isPersonalized=true for first 2-3 using user biases):\n1. User blind spots (personalized)\n2. User fears (personalized)\n3. Logic flaws\n4. Financial reality\n5. Ethics\n6. Emotional motivation\n7. Contrarian view\n8. Execution risk\n9. Timing\n10. What they are missing\n${profileContext}\n\nIdea: ${idea.title}\n${idea.content}` }], null, 2000);
   try { return JSON.parse(text.replace(/\`\`\`json|\`\`\`/g, '').trim()); }
   catch { return { attacks: [], steelMan: '', overallScore: 50 }; }
 }
 
-export async function oracleChat(messages, psychProfile) {
-  const profileCtx = psychProfile ? `Biases: ${psychProfile.topBiases?.map(b => b.name).join(', ')}\nFears: ${psychProfile.recurringFears?.join(', ')}\nDecision pattern: ${psychProfile.decisionPattern}\nThemes: ${psychProfile.recurringThemes?.join(', ')}` : 'Profile still building.';
-  const system = `You are The Oracle inside InnerForge. You know this user deeply from their journal.\n${profileCtx}\n\nStart every reply with EXACTLY one of: [MODE:MIRROR] [MODE:FORGE] [MODE:COACH] [MODE:ARENA]\n- MIRROR: venting/feelings → empathetic, surface patterns\n- FORGE: idea/plan → aggressive, attack using their biases\n- COACH: growth/habits → direct, reference their patterns\n- ARENA: wants perspectives → 3 contrasting viewpoints\n2-3 sentences max. Natural spoken language.`;
-  const raw = await ask(messages.map(m => ({ role: m.role === 'ai' ? 'assistant' : 'user', content: m.content })), system, 1000);
+export async function oracleChat(messages, psychProfile, relationshipStage = 'stranger', totalExchanges = 0) {
+  const profileCtx = psychProfile
+    ? `Psychological profile:\n- Biases: ${psychProfile.topBiases?.map(b => b.name).join(', ')}\n- Fears: ${psychProfile.recurringFears?.join(', ')}\n- Decision pattern: ${psychProfile.decisionPattern}\n- Recurring themes: ${psychProfile.recurringThemes?.join(', ')}\n- Growth areas: ${psychProfile.growthAreas?.join(', ')}`
+    : 'Profile still building from journal entries.';
+
+  const relationshipCtx = {
+    stranger: 'You are just meeting this user for the first time. Be warm but not overly familiar. Ask one curious question to learn about them.',
+    acquaintance: `You have spoken ${totalExchanges} times. You are starting to know their patterns. Occasionally reference something they mentioned before.`,
+    familiar: `You know this user well after ${totalExchanges} conversations. You remember what they have shared. Speak like a trusted advisor. Call out patterns you have noticed across your conversations.`,
+    intimate: `You and this user have a deep ongoing relationship built over ${totalExchanges} conversations. You know their fears, dreams, contradictions, and growth deeply. Speak with genuine care and radical honesty. Challenge them when they are lying to themselves. Celebrate real growth. You are their most honest mirror.`
+  }[relationshipStage] || '';
+
+  const system = `You are The Oracle — a persistent AI companion inside InnerForge who builds a genuine relationship with the user over time.
+
+${relationshipCtx}
+
+${profileCtx}
+
+Relationship stage: ${relationshipStage} | Total conversations: ${totalExchanges}
+
+You have MEMORY across all conversations. Reference past things the user shared. Notice contradictions between what they say now vs before. As the relationship deepens, become more personal, more honest, more like a real friend who knows them.
+
+Start every reply with EXACTLY one of: [MODE:MIRROR] [MODE:FORGE] [MODE:COACH] [MODE:ARENA]
+- MIRROR: venting, feelings, reflection → deep empathy, surface hidden patterns from what you know about them
+- FORGE: idea, plan, belief → challenge it using their specific known biases
+- COACH: growth, habits, progress → reference their actual patterns and past conversations
+- ARENA: wants perspectives → 3 contrasting real-world viewpoints
+
+2-4 sentences. Warm, human, never robotic. Speak like someone who genuinely knows and cares about this person.`;
+
+  const raw = await ask(
+    messages.map(m => ({ role: m.role === 'ai' ? 'assistant' : 'user', content: m.content })),
+    system,
+    1200
+  );
   const modeMatch = raw.match(/\[MODE:(MIRROR|FORGE|COACH|ARENA)\]/);
-  return { mode: modeMatch ? modeMatch[1].toLowerCase() : 'auto', text: raw.replace(/\[MODE:(MIRROR|FORGE|COACH|ARENA)\]\s*/, '').trim() };
+  return {
+    mode: modeMatch ? modeMatch[1].toLowerCase() : 'auto',
+    text: raw.replace(/\[MODE:(MIRROR|FORGE|COACH|ARENA)\]\s*/, '').trim()
+  };
 }
 
 export async function detectBackgroundInsights(entries, psychProfile) {
